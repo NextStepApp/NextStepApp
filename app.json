@@ -1,29 +1,49 @@
 {
   "expo": {
-    "name": "next-step-app",
+    "name": "Next Step App",
     "slug": "next-step-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "scheme": "nextstepapp",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+
+    "experiments": {
+      "baseUrl": "/NextStepApp"
     },
+
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "This app uses Face ID / Touch ID to help secure your account and approve sensitive actions."
+      }
     },
+
     "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      },
-      "edgeToEdgeEnabled": true
+      "package": "com.example.nextstepapp",
+      "permissions": []
     },
+
     "web": {
-      "favicon": "./assets/favicon.png"
-    }
+      "bundler": "metro",
+      "display": "standalone",
+      "startUrl": ".",
+      "scope": "/NextStepApp/",
+      "themeColor": "#0a84ff",
+      "backgroundColor": "#ffffff",
+      "meta": {
+        "apple": {
+          "title": "Next Step App",
+          "statusBarStyle": "default"
+        }
+      }
+    },
+
+    "plugins": [
+      "expo-local-authentication"
+    ],
+
+    "assetBundlePatterns": [
+      "**/*"
+    ]
   }
 }
