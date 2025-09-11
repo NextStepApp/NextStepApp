@@ -7,6 +7,37 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import InstallPrompt from "./InstallPrompt";
 import AddToHomeScreenTip from "./AddToHomeScreenTip";
+import InstallPrompt from "./InstallPrompt";
+import AddToHomeScreenTip from "./AddToHomeScreenTip";
+
+// In your header/toolbar area:
+<InstallPrompt />
+<AddToHomeScreenTip />
+
+import { Platform } from "react-native"; // if not already in your list
+
+// PWA bootstrap (web only) — use your GH Pages base path
+useEffect(() => {
+  if (Platform.OS !== "web") return;
+
+  const base = "/NextStepApp";
+
+  try {
+    let link = document.querySelector('link[rel="manifest"]');
+    if (!link) {
+      link = document.createElement("link");
+      link.rel = "manifest";
+      link.href = `${base}/manifest.webmanifest`;
+      document.head.appendChild(link);
+    }
+  } catch {}
+
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker
+      .register(`${base}/sw.js`, { scope: `${base}/` })
+      .catch((e) => console.warn("SW register failed:", e));
+  }
+}, []);
 
 // Passwordless local auth helpers
 import {
