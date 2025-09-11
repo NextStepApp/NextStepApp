@@ -5,13 +5,15 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-// Local-only auth helpers (passwordless)
+import InstallPrompt from "./InstallPrompt";
+import AddToHomeScreenTip from "./AddToHomeScreenTip";
+
+// Passwordless local auth helpers
 import {
-  signUpLocal, signInLocal, signOutLocal, currentUserLocal,
-  listLocalAccounts
+  signInLocal, signOutLocal, currentUserLocal, listLocalAccounts
 } from "./localAuth";
 
-// Backup & restore helpers (LOCAL FILE ONLY — passphrase-free)
+// Backup & restore (passphrase-free, local files / web download)
 import {
   backupNow, restoreFromFile,
   isBackupConfigured, enableAutoBackup, getAutoBackupEnabled,
@@ -20,7 +22,7 @@ import {
 
 /** ~3 blank lines of space before content so it doesn’t hug the top edge */
 const TOP_SPACER_PX = 60;
-// Settings screen sits ~2 rows (~40px) higher:
+// Settings sits ~2 rows (~40px) higher than other screens
 const SETTINGS_TOP_SPACER_PX = Math.max(0, TOP_SPACER_PX - 40);
 
 /* =================== Categories =================== */
@@ -77,7 +79,7 @@ const CATEGORY_SYNONYMS = {
 };
 const canon = (cat) => CATEGORY_SYNONYMS[cat] || cat;
 
-/** One-time migration of stored data from old labels to canonical labels */
+/** Migration of old labels to canonical labels (runs on load) */
 const CATEGORY_MAPPINGS = {
   "Days In The Box": "Days In 1.0 Box",
   "Days in Phase 1 Box": "Days In 1.0 Box",
@@ -288,7 +290,7 @@ export default function App(){
     return ()=>{ if (backupDebounceRef.current) clearTimeout(backupDebounceRef.current); };
   }, [entries, phase, selectedDate, weekStartDay, autoBackupEnabled, user]);
 
-  /* Entry helpers (use canonical keys) */
+  /* Entry helpers (canonical keys) */
   const day=(iso)=> entries[iso] || {};
   const rawVal=(iso,cat)=> day(iso)[canon(cat)];
   const valNum=(iso,cat)=> { const v=rawVal(iso,cat); return Number.isFinite(v)?v:0; };
@@ -310,6 +312,7 @@ export default function App(){
     return null;
   };
 
+  // Weekly weight rule: only consider weights INSIDE the week, choose the date closest to today
   const weeklyWeightForRange = (startIso, endIso) => {
     const inWeek = datesInRange(startIso, endIso)
       .map(d => ({ d, w: entries[d]?.["Today's Weight"] }))
@@ -325,6 +328,7 @@ export default function App(){
     return best.w;
   };
 
+  /* Weekly totals & weight snapshot */
   const weeklyData = useMemo(()=>{
     const start=getWeekStart(selectedDate,weekStartDay), end=getWeekEnd(start);
     const dates=datesInRange(start,end);
@@ -418,9 +422,12 @@ export default function App(){
       {/* Top bar */}
       <View style={styles.topbar}>
         <Text style={{fontWeight:"bold"}}>Phase: {phase===1?"Phase 1":"Phase 2"}</Text>
-        <TouchableOpacity onPress={async()=>{ await signOutLocal(); setUser(null); }} style={styles.smallBtn}>
-          <Text>Sign Out</Text>
-        </TouchableOpacity>
+        <View style={{flexDirection:"row", alignItems:"center"}}>
+          <InstallPrompt />
+          <TouchableOpacity onPress={async()=>{ await signOutLocal(); setUser(null); }} style={styles.smallBtn}>
+            <Text>Sign Out</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Date / Week header */}
@@ -442,6 +449,9 @@ export default function App(){
         </View>
         <TouchableOpacity style={styles.settingsBtn} onPress={()=>setShowSettings(true)}><Text>Settings</Text></TouchableOpacity>
       </View>
+
+      {/* iOS Safari Add-to-Home-Screen tip */}
+      <AddToHomeScreenTip />
     </>
   );
 
@@ -484,7 +494,7 @@ export default function App(){
                 <View style={styles.row}>
                   <Text style={styles.label}>{item}:</Text>
                   <TextInput
-                    style={[styles.input,{width:120}]}
+                    style={[styles.input,{width:140}]}
                     keyboardType="numeric"
                     inputMode="numeric"
                     value={newPAEntry}
@@ -507,13 +517,13 @@ export default function App(){
                 {showPAList && (
                   <View style={styles.paListBox}>
                     <Text style={{marginBottom:6,fontWeight:"600"}}>Physical Activity Entries</Text>
-                    <ScrollView style={{maxHeight:200}}>
+                    <ScrollView style={{maxHeight:220}}>
                       {items.length===0 ? <Text style={{opacity:.6}}>No entries yet.</Text> :
                         items.map((cals,idx)=>(
                           <View key={idx} style={styles.paItemRow}>
-                            <Text style={{width:70}}>Entry {idx+1}:</Text>
+                            <Text style={{width:74}}>Entry {idx+1}:</Text>
                             <TextInput
-                              style={[styles.input,{width:100}]}
+                              style={[styles.input,{width:110}]}
                               keyboardType="numeric"
                               inputMode="numeric"
                               value={String(cals)}

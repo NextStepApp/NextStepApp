@@ -4,46 +4,13 @@
     "slug": "next-step-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "scheme": "nextstepapp",
-    "userInterfaceStyle": "light",
-
-    "experiments": {
-      "baseUrl": "/NextStepApp"
-    },
-
-    "ios": {
-      "supportsTablet": false,
-      "infoPlist": {
-        "NSFaceIDUsageDescription": "This app uses Face ID / Touch ID to help secure your account and approve sensitive actions."
-      }
-    },
-
-    "android": {
-      "package": "com.example.nextstepapp",
-      "permissions": []
-    },
-
+    "experiments": { "baseUrl": "/NextStepApp" },
     "web": {
       "bundler": "metro",
       "display": "standalone",
       "startUrl": ".",
       "scope": "/NextStepApp/",
-      "themeColor": "#0a84ff",
-      "backgroundColor": "#ffffff",
-      "meta": {
-        "apple": {
-          "title": "Next Step App",
-          "statusBarStyle": "default"
-        }
-      }
-    },
-
-    "plugins": [
-      "expo-local-authentication"
-    ],
-
-    "assetBundlePatterns": [
-      "**/*"
-    ]
+      "favicon": "./assets/favicon.png"
+    }
   }
 }
