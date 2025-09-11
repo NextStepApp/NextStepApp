@@ -1,43 +1,12 @@
 ﻿import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   SafeAreaView, Text, View, Button, TouchableOpacity, FlatList,
-  TextInput, StyleSheet, Modal, Alert, PanResponder, ScrollView,
+  TextInput, StyleSheet, Modal, Alert, PanResponder, ScrollView, Platform
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import InstallPrompt from "./InstallPrompt";
 import AddToHomeScreenTip from "./AddToHomeScreenTip";
-import InstallPrompt from "./InstallPrompt";
-import AddToHomeScreenTip from "./AddToHomeScreenTip";
-
-// In your header/toolbar area:
-<InstallPrompt />
-<AddToHomeScreenTip />
-
-import { Platform } from "react-native"; // if not already in your list
-
-// PWA bootstrap (web only) — use your GH Pages base path
-useEffect(() => {
-  if (Platform.OS !== "web") return;
-
-  const base = "/NextStepApp";
-
-  try {
-    let link = document.querySelector('link[rel="manifest"]');
-    if (!link) {
-      link = document.createElement("link");
-      link.rel = "manifest";
-      link.href = `${base}/manifest.webmanifest`;
-      document.head.appendChild(link);
-    }
-  } catch {}
-
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker
-      .register(`${base}/sw.js`, { scope: `${base}/` })
-      .catch((e) => console.warn("SW register failed:", e));
-  }
-}, []);
 
 // Passwordless local auth helpers
 import {
@@ -167,7 +136,7 @@ function AuthScreen({ onSignedIn }){
   const doContinue = async()=> {
     try {
       if(!username.trim()){ Alert.alert("Enter a username (email)"); return; }
-      const u = await signInLocal(username);
+      const u = await signInLocal(username.trim());
       onSignedIn(u);
     } catch(e){ Alert.alert("Unable to continue", e.message || String(e)); }
   };
@@ -218,6 +187,29 @@ function AuthScreen({ onSignedIn }){
 
 /* =================== Main App =================== */
 export default function App(){
+  /* PWA bootstrap (web only) — inject manifest & register service worker for GitHub Pages base path */
+  useEffect(() => {
+    if (Platform.OS !== "web") return;
+
+    const base = "/NextStepApp";
+
+    try {
+      let link = document.querySelector('link[rel="manifest"]');
+      if (!link) {
+        link = document.createElement("link");
+        link.rel = "manifest";
+        link.href = `${base}/manifest.webmanifest`;
+        document.head.appendChild(link);
+      }
+    } catch {}
+
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker
+        .register(`${base}/sw.js`, { scope: `${base}/` })
+        .catch((e) => console.warn("SW register failed:", e));
+    }
+  }, []);
+
   /* Auth */
   const [authReady,setAuthReady]=useState(false);
   const [user,setUser]=useState(null);
