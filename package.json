@@ -1,15 +1,15 @@
 {
   "name": "next-step-app",
-  "license": "0BSD",
   "version": "1.0.0",
   "private": true,
+  "license": "0BSD",
   "main": "index.js",
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "predeploy": "expo export -p web --output-dir dist && powershell -Command \"Copy-Item dist\\index.html dist\\404.html -Force; if (Test-Path public) { Copy-Item -Recurse -Force public\\* dist\\ }\"",
+    "predeploy": "expo export -p web --output-dir dist && powershell -Command \"Copy-Item dist\\index.html dist\\404.html -Force; if (Test-Path public) { Copy-Item -Recurse -Force public\\* dist\\ }\" && node scripts/inject-manifest.js",
     "deploy": "git add -A && git commit -m \"web export\" && git subtree push --prefix dist origin gh-pages"
   },
   "dependencies": {
