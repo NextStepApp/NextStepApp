@@ -19,7 +19,6 @@ import {
 
 /** ~3 blank lines of space before content so it doesn’t hug the top edge */
 const TOP_SPACER_PX = 60;
-// Settings sits ~2 rows (~40px) higher than other screens
 const SETTINGS_TOP_SPACER_PX = Math.max(0, TOP_SPACER_PX - 40);
 
 /* =================== Categories =================== */
@@ -32,7 +31,7 @@ const phase2Categories = [
   "Days In 1.0 Box","Days In 1.5 Box","Physical Activity","Today's Weight",
 ];
 
-/* ======= Calories/min table (open-ended 400+ range) ======= */
+/* ======= Calories/min table (400+ open-ended) ======= */
 const calorieChart = [
   { min:100, max:120.99, low:1, medium:3,  high:7,  veryHigh:10 },
   { min:121, max:140.99, low:1, medium:5,  high:9,  veryHigh:12 },
@@ -67,7 +66,7 @@ const absDaysDiff=(aIso,bIso)=>Math.abs(Math.round((new Date(aIso+"T00:00:00")-n
 const PA_ENTRIES_KEY = "Physical Activity Entries";
 const storageKey = (email, name) => `@nextstep/${email || "local"}/${name}`;
 
-/* ========= Canonicalization so "Days In 1.0 Box" is shared across phases ========= */
+/* ==== Canonicalize so "Days In 1.0 Box" is shared across phases ==== */
 const CATEGORY_SYNONYMS = {
   "Days In 1.0 Box": "Days In 1.0 Box",
   "Days in 1.0 Box": "Days In 1.0 Box",
@@ -75,8 +74,6 @@ const CATEGORY_SYNONYMS = {
   "Days In The Box": "Days In 1.0 Box",
 };
 const canon = (cat) => CATEGORY_SYNONYMS[cat] || cat;
-
-/** Migration of old labels to canonical labels (runs on load) */
 const CATEGORY_MAPPINGS = {
   "Days In The Box": "Days In 1.0 Box",
   "Days in Phase 1 Box": "Days In 1.0 Box",
@@ -116,23 +113,16 @@ function InstallPromptInline() {
 
   useEffect(() => {
     if (Platform.OS !== "web") return;
-
-    // Hide button if already installed
     if (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) {
       setSupportsInstall(false);
       return;
     }
-    const handler = (e) => {
-      e.preventDefault();
-      setDeferred(e);
-      setSupportsInstall(true);
-    };
+    const handler = (e) => { e.preventDefault(); setDeferred(e); setSupportsInstall(true); };
     window.addEventListener("beforeinstallprompt", handler);
     return () => window.removeEventListener("beforeinstallprompt", handler);
   }, []);
 
   if (!supportsInstall) return null;
-
   return (
     <TouchableOpacity
       onPress={async () => {
@@ -154,9 +144,7 @@ function InstallPromptInline() {
 function LocalAccountList({ onPick }){
   const [emails,setEmails]=useState([]);
   useEffect(()=>{ (async()=>{ setEmails(await listLocalAccounts()); })(); },[]);
-  if (emails.length === 0) {
-    return <Text style={{opacity:.6}}>No local accounts yet.</Text>;
-  }
+  if (emails.length === 0) return <Text style={{opacity:.6}}>No local accounts yet.</Text>;
   return (
     <View style={{borderWidth:1,borderRadius:8,padding:10}}>
       {emails.map(e=>(
@@ -227,7 +215,7 @@ function AuthScreen({ onSignedIn }){
 
 /* =================== Main App =================== */
 export default function App(){
-  /* PWA bootstrap (web only) — inject manifest & register service worker for GitHub Pages base path */
+  /* PWA (web) — add manifest + register service worker for GH Pages base path */
   useEffect(() => {
     if (Platform.OS !== "web") return;
     const base = "/NextStepApp";
@@ -273,7 +261,7 @@ export default function App(){
   const [minutes,setMinutes]=useState("");
   const [intensity,setIntensity]=useState("medium");
 
-  /* Backup UI (LOCAL FILE BACKUP) */
+  /* Backup UI */
   const [backupConfigured,setBackupConfigured]=useState(false);
   const [autoBackupEnabled,setAutoBackupEnabled]=useState(false);
   const [lastBackupInfo,setLastBackupInfo]=useState(null);
@@ -332,7 +320,7 @@ export default function App(){
     }
   })(); },[user]);
 
-  /* ========== AUTO BACKUP EFFECT (debounced) ========== */
+  /* Auto backup after edits (debounced) */
   const backupDebounceRef = useRef(null);
   useEffect(()=>{
     if(!user?.email || !autoBackupEnabled) return;
@@ -341,9 +329,7 @@ export default function App(){
       try{
         const info = await backupNow(user.email);
         setLastBackupInfo(info);
-      }catch(e){
-        console.warn("Auto-backup failed:", e?.message || e);
-      }
+      }catch(e){ console.warn("Auto-backup failed:", e?.message || e); }
     }, 1200);
     return ()=>{ if (backupDebounceRef.current) clearTimeout(backupDebounceRef.current); };
   }, [entries, phase, selectedDate, weekStartDay, autoBackupEnabled, user]);
@@ -370,7 +356,7 @@ export default function App(){
     return null;
   };
 
-  // Weekly weight rule: only consider weights INSIDE the week, choose the date closest to today
+  // Weekly weight rule: only consider weights INSIDE the week, choose date closest to today
   const weeklyWeightForRange = (startIso, endIso) => {
     const inWeek = datesInRange(startIso, endIso)
       .map(d => ({ d, w: entries[d]?.["Today's Weight"] }))
@@ -517,8 +503,8 @@ export default function App(){
         keyExtractor={(i)=>i}
         ListHeaderComponent={ListHeader}
         ListFooterComponent={<View style={{height:40}}/>}
-        // add little extra side padding so items never touch edges
-        contentContainerStyle={{ paddingHorizontal: 8, paddingBottom: 40 }}
+        // extra side padding so rows never touch edges
+        contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 40 }}
         renderItem={({item})=>{
           /* ===== WEEKLY SUMMARY MODE ===== */
           if (viewMode === "weekly") {
@@ -675,7 +661,7 @@ export default function App(){
         </SafeAreaView>
       </Modal>
 
-      {/* Settings — FULL SCREEN + SCROLL (2 rows higher) */}
+      {/* Settings — FULL SCREEN + SCROLL */}
       <Modal visible={showSettings} animationType="slide" transparent={false}>
         <SafeAreaView style={styles.modalFull}>
           <ScrollView contentContainerStyle={[styles.modalScroll, styles.screenInner]}>
@@ -715,7 +701,6 @@ export default function App(){
               <Text style={{marginBottom:12}}>Last backup: {new Date(lastBackupInfo.createdAt).toLocaleString()}</Text>
             ) : <Text style={{marginBottom:12}}>Last backup: none</Text>}
 
-            {/* Auto backup toggle */}
             <TouchableOpacity
               style={[styles.intensityBtn, autoBackupEnabled && styles.selectedBtn]}
               onPress={async()=>{
@@ -782,18 +767,18 @@ export default function App(){
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    // more side padding app-wide
+    // **Wider gutters app-wide**
     paddingVertical: 16,
-    paddingHorizontal: 24,
+    paddingHorizontal: 28,
     backgroundColor: "#fff",
   },
 
-  // keep content narrower and centered on all screens
+  // **Narrower content column** centered on all screens
   screenInner: {
     width: "100%",
-    maxWidth: 360,        // <- tightened width (adjust to taste: 340–400)
+    maxWidth: 320,        // tighter column so controls never hug the edge
     alignSelf: "center",
-    paddingHorizontal: 12 // <- inner gutter
+    paddingHorizontal: 16 // inner gutter
   },
 
   topSpacer:{ height: TOP_SPACER_PX },
@@ -828,31 +813,28 @@ const styles = StyleSheet.create({
   segmentTextActive:{ fontWeight:"bold" },
   settingsBtn:{ paddingVertical:6, paddingHorizontal:12, borderWidth:1, borderRadius:8 },
 
-  // rows span the inner width and can wrap
   row:{ flexDirection:"row", alignItems:"center", marginVertical:8, width:"100%", flexWrap:"wrap" },
   rowCol:{ marginVertical:8, width:"100%" },
 
-  label:{ flex:1, fontSize:16, minWidth:150 },
+  label:{ flex:1, fontSize:16, minWidth:160 },
   value:{ width:60, textAlign:"center", fontSize:16 },
   valueLarge:{ width:100, textAlign:"center", fontSize:16 },
   button:{ padding:10, borderWidth:1, borderRadius:8, marginHorizontal:5 },
   smallBtn:{ paddingVertical:6, paddingHorizontal:10, borderWidth:1, borderRadius:8, marginLeft:6 },
 
-  // inputs narrower so they don’t touch edges on small phones
   input:{
     borderWidth:1,
-    padding:5,
+    padding:6,
     textAlign:"center",
-    borderRadius:5,
-    marginHorizontal:5,
-    minWidth:90,
+    borderRadius:6,
+    marginHorizontal:6,
+    minWidth:100,
     maxWidth:200,
     flexGrow:0
   },
-  unit:{ marginLeft:5 },
+  unit:{ marginLeft:6 },
 
-  // Full-screen modal layout + scroll
-  modalFull:{ flex:1, backgroundColor:"#fff", paddingVertical:20, paddingHorizontal:24 },
+  modalFull:{ flex:1, backgroundColor:"#fff", paddingVertical:20, paddingHorizontal:28 },
   modalScroll:{ paddingBottom:40 },
 
   modalTitle:{ fontSize:18, fontWeight:"bold", marginBottom:10 },
