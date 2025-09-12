@@ -5,15 +5,17 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+// Optional PWA helpers you created earlier.
+// If you don’t have these files, comment these two lines out.
 import InstallPrompt from "./InstallPrompt";
 import AddToHomeScreenTip from "./AddToHomeScreenTip";
 
-// Passwordless local auth helpers
+// Passwordless local “accounts” (per-device) helpers
 import {
   signInLocal, signOutLocal, currentUserLocal, listLocalAccounts
 } from "./localAuth";
 
-// Backup & restore (passphrase-free, local files / web download)
+// Local file backup helpers (no passphrase)
 import {
   backupNow, restoreFromFile,
   isBackupConfigured, enableAutoBackup, getAutoBackupEnabled,
@@ -161,25 +163,27 @@ function AuthScreen({ onSignedIn }){
     <SafeAreaView style={{flex:1}}>
       <ScrollView contentContainerStyle={{padding:16,justifyContent:"center",flexGrow:1}}>
         <View style={{height:TOP_SPACER_PX}} />
-        <Text style={styles.authTitle}>Choose an Account</Text>
-        <Text style={{marginBottom:8}}>Use any username (e.g., your email). No password required.</Text>
+        <View style={styles.screenInner}>
+          <Text style={styles.authTitle}>Choose an Account</Text>
+          <Text style={{marginBottom:8}}>Use any username (e.g., your email). No password required.</Text>
 
-        <TextInput
-          style={styles.input}
-          autoCapitalize="none"
-          placeholder="Username (e.g., you@example.com)"
-          value={username}
-          onChangeText={setUsername}
-        />
-        <Button title="Continue" onPress={doContinue} />
+          <TextInput
+            style={styles.input}
+            autoCapitalize="none"
+            placeholder="Username (e.g., you@example.com)"
+            value={username}
+            onChangeText={setUsername}
+          />
+          <Button title="Continue" onPress={doContinue} />
 
-        <View style={{height:16}}/>
-        <Text style={{fontWeight:"600", marginBottom:8}}>Or pick an existing account on this device:</Text>
-        <LocalAccountList onPick={async (email)=>{ const u=await signInLocal(email); onSignedIn(u); }} />
+          <View style={{height:16}}/>
+          <Text style={{fontWeight:"600", marginBottom:8}}>Or pick an existing account on this device:</Text>
+          <LocalAccountList onPick={async (email)=>{ const u=await signInLocal(email); onSignedIn(u); }} />
 
-        <View style={{height:16}}/>
-        <Text style={{fontWeight:"600", marginBottom:6}}>Restore from backup file</Text>
-        <Button title="Pick file & restore" onPress={doRestore}/>
+          <View style={{height:16}}/>
+          <Text style={{fontWeight:"600", marginBottom:6}}>Restore from backup file</Text>
+          <Button title="Pick file & restore" onPress={doRestore}/>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -190,9 +194,7 @@ export default function App(){
   /* PWA bootstrap (web only) — inject manifest & register service worker for GitHub Pages base path */
   useEffect(() => {
     if (Platform.OS !== "web") return;
-
     const base = "/NextStepApp";
-
     try {
       let link = document.querySelector('link[rel="manifest"]');
       if (!link) {
@@ -202,7 +204,6 @@ export default function App(){
         document.head.appendChild(link);
       }
     } catch {}
-
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker
         .register(`${base}/sw.js`, { scope: `${base}/` })
@@ -252,10 +253,8 @@ export default function App(){
         AsyncStorage.getItem(storageKey(user.email,"date")),
         AsyncStorage.getItem(storageKey(user.email,"weekStartDay")),
       ]);
-
       let loadedEntries = e ? JSON.parse(e) : {};
       loadedEntries = await migrateCategoryKeys(user.email, loadedEntries);
-
       setEntries(loadedEntries);
       if(p) setPhase(Number(p)||1);
       if(d) setSelectedDate(d);
@@ -437,16 +436,17 @@ export default function App(){
   if(!authReady){ return (<SafeAreaView style={{flex:1,alignItems:"center",justifyContent:"center"}}><Text>Loading…</Text></SafeAreaView>); }
   if(!user){ return <AuthScreen onSignedIn={u=>setUser(u)} />; }
 
-  /* ---------- FlatList as the main scroll area: header + items all scroll ---------- */
+  /* ---------- FlatList as the main scroll area ---------- */
   const ListHeader = (
-    <>
+    <View style={styles.screenInner}>
       <View style={styles.topSpacer} />
 
       {/* Top bar */}
       <View style={styles.topbar}>
         <Text style={{fontWeight:"bold"}}>Phase: {phase===1?"Phase 1":"Phase 2"}</Text>
         <View style={{flexDirection:"row", alignItems:"center"}}>
-          <InstallPrompt />
+          {/* Optional install button for web */}
+          {Platform.OS === "web" ? <InstallPrompt /> : null}
           <TouchableOpacity onPress={async()=>{ await signOutLocal(); setUser(null); }} style={styles.smallBtn}>
             <Text>Sign Out</Text>
           </TouchableOpacity>
@@ -473,9 +473,8 @@ export default function App(){
         <TouchableOpacity style={styles.settingsBtn} onPress={()=>setShowSettings(true)}><Text>Settings</Text></TouchableOpacity>
       </View>
 
-      {/* iOS Safari Add-to-Home-Screen tip */}
-      <AddToHomeScreenTip />
-    </>
+      {Platform.OS === "web" ? <AddToHomeScreenTip /> : null}
+    </View>
   );
 
   return (
@@ -488,23 +487,21 @@ export default function App(){
         renderItem={({item})=>{
           /* ===== WEEKLY SUMMARY MODE ===== */
           if (viewMode === "weekly") {
-            if (item === "Today's Weight") {
-              const w = weeklyData.weight;
-              return (
-                <View style={styles.row}>
-                  <Text style={styles.label}>{item} (weekly):</Text>
-                  <Text style={styles.valueLarge}>{w != null ? String(w) : ""}</Text>
-                  <Text style={styles.unit}>lbs</Text>
-                </View>
-              );
-            }
-            const tot = weeklyData.totals[canon(item)] ?? 0;
-            const unit = canon(item) === "Physical Activity" ? "cal" : "";
             return (
-              <View style={styles.row}>
-                <Text style={styles.label}>{item} (weekly):</Text>
-                <Text style={styles.valueLarge}>{String(tot)}</Text>
-                {unit ? <Text style={styles.unit}>{unit}</Text> : null}
+              <View style={styles.screenInner}>
+                {item === "Today's Weight" ? (
+                  <View style={styles.row}>
+                    <Text style={styles.label}>{item} (weekly):</Text>
+                    <Text style={styles.valueLarge}>{weeklyData.weight != null ? String(weeklyData.weight) : ""}</Text>
+                    <Text style={styles.unit}>lbs</Text>
+                  </View>
+                ) : (
+                  <View style={styles.row}>
+                    <Text style={styles.label}>{item} (weekly):</Text>
+                    <Text style={styles.valueLarge}>{String(weeklyData.totals[canon(item)] ?? 0)}</Text>
+                    {canon(item) === "Physical Activity" ? <Text style={styles.unit}>cal</Text> : null}
+                  </View>
+                )}
               </View>
             );
           }
@@ -513,11 +510,11 @@ export default function App(){
           if(item==="Physical Activity"){
             const total=getPATotal(selectedDate); const items=getPAEntries(selectedDate);
             return (
-              <View style={styles.rowCol}>
+              <View style={styles.screenInner}>
                 <View style={styles.row}>
                   <Text style={styles.label}>{item}:</Text>
                   <TextInput
-                    style={[styles.input,{width:140}]}
+                    style={[styles.input,{maxWidth:160}]}
                     keyboardType="numeric"
                     inputMode="numeric"
                     value={newPAEntry}
@@ -530,6 +527,7 @@ export default function App(){
                   }}><Text>Add</Text></TouchableOpacity>
                   <TouchableOpacity style={styles.smallBtn} onPress={openCalculator}><Text>Calc</Text></TouchableOpacity>
                 </View>
+
                 <View style={[styles.row,{marginTop:6}]}>
                   <Text style={[styles.label,{fontWeight:"600"}]}>Total today:</Text>
                   <Text style={styles.valueLarge}>{String(total)}</Text><Text style={styles.unit}>cal</Text>
@@ -537,6 +535,7 @@ export default function App(){
                     <Text>{showPAList?"Hide entries":"View entries"}</Text>
                   </TouchableOpacity>
                 </View>
+
                 {showPAList && (
                   <View style={styles.paListBox}>
                     <Text style={{marginBottom:6,fontWeight:"600"}}>Physical Activity Entries</Text>
@@ -546,7 +545,7 @@ export default function App(){
                           <View key={idx} style={styles.paItemRow}>
                             <Text style={{width:74}}>Entry {idx+1}:</Text>
                             <TextInput
-                              style={[styles.input,{width:110}]}
+                              style={[styles.input,{maxWidth:120}]}
                               keyboardType="numeric"
                               inputMode="numeric"
                               value={String(cals)}
@@ -569,31 +568,35 @@ export default function App(){
           if(item==="Today's Weight"){
             const raw=rawVal(selectedDate,item);
             return (
-              <View style={styles.row}>
-                <Text style={styles.label}>{item}:</Text>
-                <TextInput
-                  style={styles.input}
-                  keyboardType="numeric"
-                  inputMode="numeric"
-                  value={raw===undefined?"":String(raw)}
-                  onChangeText={(t)=>{ const n=parseFloat(t);
-                    if(t===""||!Number.isFinite(n)){ setEntries(prev=>{ const d=prev[selectedDate]||{}; const {[canon(item)]:_,...rest}=d; return {...prev,[selectedDate]:rest}; }); }
-                    else { setVal(selectedDate,item,Math.round(n*10)/10); }
-                  }}
-                  placeholder="Enter weight"
-                />
-                <Text style={styles.unit}>lbs</Text>
+              <View style={styles.screenInner}>
+                <View style={styles.row}>
+                  <Text style={styles.label}>{item}:</Text>
+                  <TextInput
+                    style={[styles.input,{maxWidth:140}]}
+                    keyboardType="numeric"
+                    inputMode="numeric"
+                    value={raw===undefined?"":String(raw)}
+                    onChangeText={(t)=>{ const n=parseFloat(t);
+                      if(t===""||!Number.isFinite(n)){ setEntries(prev=>{ const d=prev[selectedDate]||{}; const {[canon(item)]:_,...rest}=d; return {...prev,[selectedDate]:rest}; }); }
+                      else { setVal(selectedDate,item,Math.round(n*10)/10); }
+                    }}
+                    placeholder="Enter weight"
+                  />
+                  <Text style={styles.unit}>lbs</Text>
+                </View>
               </View>
             );
           }
 
           const v=valNum(selectedDate,item);
           return (
-            <View style={styles.row}>
-              <Text style={styles.label}>{item}:</Text>
-              <TouchableOpacity style={styles.button} onPress={()=>dec(item)}><Text>-</Text></TouchableOpacity>
-              <Text style={styles.value}>{v}</Text>
-              <TouchableOpacity style={styles.button} onPress={()=>inc(item)}><Text>+</Text></TouchableOpacity>
+            <View style={styles.screenInner}>
+              <View style={styles.row}>
+                <Text style={styles.label}>{item}:</Text>
+                <TouchableOpacity style={styles.button} onPress={()=>dec(item)}><Text>-</Text></TouchableOpacity>
+                <Text style={styles.value}>{v}</Text>
+                <TouchableOpacity style={styles.button} onPress={()=>inc(item)}><Text>+</Text></TouchableOpacity>
+              </View>
             </View>
           );
         }}
@@ -603,13 +606,13 @@ export default function App(){
       {/* Calories Calculator — FULL SCREEN + SCROLL */}
       <Modal visible={showCalc} animationType="slide" transparent={false}>
         <SafeAreaView style={styles.modalFull}>
-          <ScrollView contentContainerStyle={styles.modalScroll}>
+          <ScrollView contentContainerStyle={[styles.modalScroll, styles.screenInner]}>
             <View style={styles.topSpacer} />
             <Text style={styles.modalTitle}>Calories Calculator</Text>
             <Text>Selected day: {new Date(selectedDate+"T00:00:00").toLocaleDateString()}</Text>
             <Text style={{marginTop:10}}>Weight to use (lbs):</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input,{maxWidth:140}]}
               keyboardType="numeric"
               inputMode="numeric"
               value={calcWeight}
@@ -623,7 +626,7 @@ export default function App(){
               </TouchableOpacity>
             ))}
             <TextInput
-              style={[styles.input,{marginTop:8}]}
+              style={[styles.input,{marginTop:8, maxWidth:140}]}
               placeholder="Minutes exercised"
               keyboardType="numeric"
               inputMode="numeric"
@@ -641,7 +644,7 @@ export default function App(){
       {/* Settings — FULL SCREEN + SCROLL (2 rows higher) */}
       <Modal visible={showSettings} animationType="slide" transparent={false}>
         <SafeAreaView style={styles.modalFull}>
-          <ScrollView contentContainerStyle={styles.modalScroll}>
+          <ScrollView contentContainerStyle={[styles.modalScroll, styles.screenInner]}>
             <View style={{ height: SETTINGS_TOP_SPACER_PX }} />
             <Text style={styles.modalTitle}>Settings</Text>
 
@@ -655,10 +658,16 @@ export default function App(){
             <View style={{height:12}}/>
             <Text style={{marginBottom:8}}>Phase:</Text>
             <View style={{flexDirection:"row", flexWrap:"wrap"}}>
-              <TouchableOpacity style={[styles.segmentBtn, phase===1&&styles.segmentBtnActive,{marginRight:8, marginBottom:8}]} onPress={()=>setPhase(1)}>
+              <TouchableOpacity
+                style={[styles.segmentBtn, phase===1&&styles.segmentBtnActive,{marginRight:8, marginBottom:8}]}
+                onPress={()=>setPhase(1)}
+              >
                 <Text style={phase===1?styles.segmentTextActive:null}>Phase 1</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.segmentBtn, phase===2&&styles.segmentBtnActive,{marginBottom:8}]} onPress={()=>setPhase(2)}>
+              <TouchableOpacity
+                style={[styles.segmentBtn, phase===2&&styles.segmentBtnActive,{marginBottom:8}]}
+                onPress={()=>setPhase(2)}
+              >
                 <Text style={phase===2?styles.segmentTextActive:null}>Phase 2</Text>
               </TouchableOpacity>
             </View>
@@ -737,28 +746,39 @@ export default function App(){
 
 /* =================== Styles =================== */
 const styles = StyleSheet.create({
-  container:{flex:1, padding:16},
+  container:{ flex:1, padding:16 },
+
+  // center all content and limit width so nothing gets cut off
+  screenInner: { width: "100%", maxWidth: 420, alignSelf: "center" },
+
   topSpacer:{ height: TOP_SPACER_PX },
 
-  topbar:{flexDirection:"row",justifyContent:"space-between",alignItems:"center",marginBottom:8},
-  header:{flexDirection:"row",alignItems:"center",justifyContent:"space-between",marginBottom:8},
+  topbar:{flexDirection:"row",justifyContent:"space-between",alignItems:"center",marginBottom:8, width:"100%", alignSelf:"center"},
+  header:{flexDirection:"row",alignItems:"center",justifyContent:"space-between",marginBottom:8, width:"100%"},
   navBtn:{paddingHorizontal:12,paddingVertical:6,borderWidth:1,borderRadius:8},
   title:{fontSize:18,fontWeight:"bold"},
-  toolbar:{marginBottom:8,flexDirection:"row",alignItems:"center",justifyContent:"space-between"},
+  toolbar:{marginBottom:8,flexDirection:"row",alignItems:"center",justifyContent:"space-between", width:"100%"},
   segment:{flexDirection:"row",borderWidth:1,borderRadius:8,overflow:"hidden"},
   segmentBtn:{paddingVertical:6,paddingHorizontal:12,borderWidth:1,borderRadius:8},
   segmentBtnActive:{backgroundColor:"#E0E0E0"},
   segmentTextActive:{fontWeight:"bold"},
   settingsBtn:{paddingVertical:6,paddingHorizontal:12,borderWidth:1,borderRadius:8},
 
-  row:{flexDirection:"row",alignItems:"center",marginVertical:8},
-  rowCol:{marginVertical:8},
-  label:{flex:1,fontSize:16},
+  // rows wrap and take full inner width
+  row:{flexDirection:"row",alignItems:"center",marginVertical:8, width:"100%", flexWrap:"wrap"},
+  rowCol:{marginVertical:8, width:"100%"},
+
+  label:{flex:1,fontSize:16,minWidth:150},
   value:{width:60,textAlign:"center",fontSize:16},
   valueLarge:{width:100,textAlign:"center",fontSize:16},
   button:{padding:10,borderWidth:1,borderRadius:8,marginHorizontal:5},
   smallBtn:{paddingVertical:6,paddingHorizontal:10,borderWidth:1,borderRadius:8,marginLeft:6},
-  input:{borderWidth:1,padding:5,width:200,textAlign:"center",borderRadius:5,marginHorizontal:5},
+
+  // inputs are narrower so they won’t overflow on small screens
+  input:{
+    borderWidth:1,padding:5,textAlign:"center",borderRadius:5,marginHorizontal:5,
+    minWidth:90, maxWidth:200, flexGrow:0
+  },
   unit:{marginLeft:5},
 
   // Full-screen modal layout + scroll

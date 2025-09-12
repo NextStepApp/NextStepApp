@@ -1,4 +1,4 @@
-// Inject <link rel="manifest"> into dist/index.html for GH Pages base path.
+// scripts/inject-manifest.js
 const fs = require("fs");
 const path = require("path");
 
@@ -12,8 +12,8 @@ if (!fs.existsSync(INDEX)) {
 
 let html = fs.readFileSync(INDEX, "utf8");
 
-// Add manifest + theme-color if missing
-if (!/rel=["']manifest["']/.test(html)) {
+// Inject manifest link + theme-color in <head>
+if (!/rel=['"]manifest['"]/.test(html)) {
   html = html.replace(
     /<head>/i,
     `<head>
@@ -22,5 +22,18 @@ if (!/rel=["']manifest["']/.test(html)) {
   );
 }
 
+// Inject a SW registration snippet before </body> (idempotent)
+if (!/navigator\.serviceWorker\.register\(/.test(html)) {
+  html = html.replace(
+    /<\/body>/i,
+    `<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/NextStepApp/sw.js').catch(()=>{});
+  }
+</script>
+</body>`
+  );
+}
+
 fs.writeFileSync(INDEX, html, "utf8");
-console.log("Injected manifest link into dist/index.html");
+console.log("Injected manifest link + SW registration into dist/index.html");
