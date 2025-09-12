@@ -218,8 +218,8 @@ function AuthScreen({ onSignedIn }){
 export default function App(){
   const { width: winW } = useWindowDimensions();
 
-  // Subtle, responsive side gutter (about 10–16px)
-  const contentGutter = winW < 400 ? 10 : winW < 700 ? 12 : 16;
+// Slightly larger, still subtle gutters: ~16px on phones, 18px on small tablets, 24px on desktop
+const contentGutter = winW < 400 ? 16 : winW < 700 ? 18 : 24;
   // Cap the content width on large screens; phones use full width minus gutter
   const contentMaxWidth = winW < 700 ? winW - contentGutter * 2 : 640;
 
