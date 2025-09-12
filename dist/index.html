@@ -34,6 +34,11 @@
     </noscript>
     <!-- The root element for your Expo app. -->
     <div id="root"></div>
-  <script src="/NextStepApp/_expo/static/js/web/index-8deae6bc1c6185e3a5641470f88e5ded.js" defer></script>
+  <script src="/NextStepApp/_expo/static/js/web/index-f5a984116c753b7fb4d467d8fc82c0de.js" defer></script>
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/NextStepApp/sw.js').catch(()=>{});
+  }
+</script>
 </body>
 </html>
