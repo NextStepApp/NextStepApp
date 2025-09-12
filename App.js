@@ -1,7 +1,8 @@
 ﻿import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   SafeAreaView, Text, View, Button, TouchableOpacity, FlatList,
-  TextInput, StyleSheet, Modal, Alert, PanResponder, ScrollView, Platform
+  TextInput, StyleSheet, Modal, Alert, PanResponder, ScrollView, Platform,
+  useWindowDimensions
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -187,7 +188,7 @@ function AuthScreen({ onSignedIn }){
     <SafeAreaView style={{flex:1}}>
       <ScrollView contentContainerStyle={{padding:16,justifyContent:"center",flexGrow:1}}>
         <View style={{height:TOP_SPACER_PX}} />
-        <View style={styles.screenInner}>
+        <View style={{width:"100%", alignSelf:"center"}}>
           <Text style={styles.authTitle}>Choose an Account</Text>
           <Text style={{marginBottom:8}}>Use any username (e.g., your email). No password required.</Text>
 
@@ -215,6 +216,13 @@ function AuthScreen({ onSignedIn }){
 
 /* =================== Main App =================== */
 export default function App(){
+  const { width: winW } = useWindowDimensions();
+
+  // Subtle, responsive side gutter (about 10–16px)
+  const contentGutter = winW < 400 ? 10 : winW < 700 ? 12 : 16;
+  // Cap the content width on large screens; phones use full width minus gutter
+  const contentMaxWidth = winW < 700 ? winW - contentGutter * 2 : 640;
+
   /* PWA (web) — add manifest + register service worker for GH Pages base path */
   useEffect(() => {
     if (Platform.OS !== "web") return;
@@ -458,9 +466,9 @@ export default function App(){
   if(!authReady){ return (<SafeAreaView style={{flex:1,alignItems:"center",justifyContent:"center"}}><Text>Loading…</Text></SafeAreaView>); }
   if(!user){ return <AuthScreen onSignedIn={u=>setUser(u)} />; }
 
-  /* ---------- FlatList as the main scroll area ---------- */
+  /* ---------- List header (toolbar area) ---------- */
   const ListHeader = (
-    <View style={styles.screenInner}>
+    <View style={[styles.screenInner, { maxWidth: contentMaxWidth, paddingHorizontal: contentGutter }]}>
       <View style={styles.topSpacer} />
 
       {/* Top bar */}
@@ -497,19 +505,21 @@ export default function App(){
   );
 
   return (
-    <SafeAreaView style={styles.container} {...panResponder.panHandlers}>
+    <SafeAreaView style={[styles.container, { paddingHorizontal: contentGutter }] } {...panResponder.panHandlers}>
       <FlatList
         data={categories}
         keyExtractor={(i)=>i}
         ListHeaderComponent={ListHeader}
         ListFooterComponent={<View style={{height:40}}/>}
-        // extra side padding so rows never touch edges
-        contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 40 }}
+        contentContainerStyle={{ paddingBottom: 40 }}
         renderItem={({item})=>{
+          /* Wrapper to center content with subtle gutters */
+          const wrapStyle = [styles.screenInner, { maxWidth: contentMaxWidth, paddingHorizontal: contentGutter }];
+
           /* ===== WEEKLY SUMMARY MODE ===== */
           if (viewMode === "weekly") {
             return (
-              <View style={styles.screenInner}>
+              <View style={wrapStyle}>
                 {item === "Today's Weight" ? (
                   <View style={styles.row}>
                     <Text style={styles.label}>{item} (weekly):</Text>
@@ -531,7 +541,7 @@ export default function App(){
           if(item==="Physical Activity"){
             const total=getPATotal(selectedDate); const items=getPAEntries(selectedDate);
             return (
-              <View style={styles.screenInner}>
+              <View style={wrapStyle}>
                 <View style={styles.row}>
                   <Text style={styles.label}>{item}:</Text>
                   <TextInput
@@ -589,7 +599,7 @@ export default function App(){
           if(item==="Today's Weight"){
             const raw=rawVal(selectedDate,item);
             return (
-              <View style={styles.screenInner}>
+              <View style={wrapStyle}>
                 <View style={styles.row}>
                   <Text style={styles.label}>{item}:</Text>
                   <TextInput
@@ -611,7 +621,7 @@ export default function App(){
 
           const v=valNum(selectedDate,item);
           return (
-            <View style={styles.screenInner}>
+            <View style={wrapStyle}>
               <View style={styles.row}>
                 <Text style={styles.label}>{item}:</Text>
                 <TouchableOpacity style={styles.button} onPress={()=>dec(item)}><Text>-</Text></TouchableOpacity>
@@ -625,8 +635,8 @@ export default function App(){
 
       {/* Calories Calculator — FULL SCREEN + SCROLL */}
       <Modal visible={showCalc} animationType="slide" transparent={false}>
-        <SafeAreaView style={styles.modalFull}>
-          <ScrollView contentContainerStyle={[styles.modalScroll, styles.screenInner]}>
+        <SafeAreaView style={[styles.modalFull, { paddingHorizontal: contentGutter }]}>
+          <ScrollView contentContainerStyle={[styles.modalScroll, { maxWidth: contentMaxWidth, alignSelf: "center", paddingHorizontal: contentGutter }]}>
             <View style={styles.topSpacer} />
             <Text style={styles.modalTitle}>Calories Calculator</Text>
             <Text>Selected day: {new Date(selectedDate+"T00:00:00").toLocaleDateString()}</Text>
@@ -663,8 +673,8 @@ export default function App(){
 
       {/* Settings — FULL SCREEN + SCROLL */}
       <Modal visible={showSettings} animationType="slide" transparent={false}>
-        <SafeAreaView style={styles.modalFull}>
-          <ScrollView contentContainerStyle={[styles.modalScroll, styles.screenInner]}>
+        <SafeAreaView style={[styles.modalFull, { paddingHorizontal: contentGutter }]}>
+          <ScrollView contentContainerStyle={[styles.modalScroll, { maxWidth: contentMaxWidth, alignSelf: "center", paddingHorizontal: contentGutter }]}>
             <View style={{ height: SETTINGS_TOP_SPACER_PX }} />
             <Text style={styles.modalTitle}>Settings</Text>
 
@@ -767,18 +777,14 @@ export default function App(){
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    // **Wider gutters app-wide**
-    paddingVertical: 16,
-    paddingHorizontal: 28,
     backgroundColor: "#fff",
+    paddingVertical: 16,
   },
 
-  // **Narrower content column** centered on all screens
+  // Subtle, responsive content wrapper — we supply maxWidth & padding at runtime
   screenInner: {
     width: "100%",
-    maxWidth: 320,        // tighter column so controls never hug the edge
     alignSelf: "center",
-    paddingHorizontal: 16 // inner gutter
   },
 
   topSpacer:{ height: TOP_SPACER_PX },
@@ -816,7 +822,7 @@ const styles = StyleSheet.create({
   row:{ flexDirection:"row", alignItems:"center", marginVertical:8, width:"100%", flexWrap:"wrap" },
   rowCol:{ marginVertical:8, width:"100%" },
 
-  label:{ flex:1, fontSize:16, minWidth:160 },
+  label:{ flex:1, fontSize:16, minWidth:150 },
   value:{ width:60, textAlign:"center", fontSize:16 },
   valueLarge:{ width:100, textAlign:"center", fontSize:16 },
   button:{ padding:10, borderWidth:1, borderRadius:8, marginHorizontal:5 },
@@ -828,13 +834,13 @@ const styles = StyleSheet.create({
     textAlign:"center",
     borderRadius:6,
     marginHorizontal:6,
-    minWidth:100,
+    minWidth:90,
     maxWidth:200,
     flexGrow:0
   },
   unit:{ marginLeft:6 },
 
-  modalFull:{ flex:1, backgroundColor:"#fff", paddingVertical:20, paddingHorizontal:28 },
+  modalFull:{ flex:1, backgroundColor:"#fff", paddingVertical:20 },
   modalScroll:{ paddingBottom:40 },
 
   modalTitle:{ fontSize:18, fontWeight:"bold", marginBottom:10 },
