@@ -5,11 +5,6 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-// Optional PWA helpers you created earlier.
-// If you don’t have these files, comment these two lines out.
-import InstallPrompt from "./InstallPrompt";
-import AddToHomeScreenTip from "./AddToHomeScreenTip";
-
 // Passwordless local “accounts” (per-device) helpers
 import {
   signInLocal, signOutLocal, currentUserLocal, listLocalAccounts
@@ -113,6 +108,47 @@ const migrateCategoryKeys = async (email, currentEntries) => {
     return currentEntries;
   }
 };
+
+/* ============== Optional inline Install button for web (PWA) ============== */
+function InstallPromptInline() {
+  const [supportsInstall, setSupportsInstall] = useState(false);
+  const [deferred, setDeferred] = useState(null);
+
+  useEffect(() => {
+    if (Platform.OS !== "web") return;
+
+    // Hide button if already installed
+    if (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) {
+      setSupportsInstall(false);
+      return;
+    }
+    const handler = (e) => {
+      e.preventDefault();
+      setDeferred(e);
+      setSupportsInstall(true);
+    };
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
+
+  if (!supportsInstall) return null;
+
+  return (
+    <TouchableOpacity
+      onPress={async () => {
+        try {
+          deferred.prompt();
+          await deferred.userChoice;
+          setDeferred(null);
+          setSupportsInstall(false);
+        } catch {}
+      }}
+      style={styles.smallBtn}
+    >
+      <Text>Install</Text>
+    </TouchableOpacity>
+  );
+}
 
 /* =================== Small Components =================== */
 function LocalAccountList({ onPick }){
@@ -445,8 +481,7 @@ export default function App(){
       <View style={styles.topbar}>
         <Text style={{fontWeight:"bold"}}>Phase: {phase===1?"Phase 1":"Phase 2"}</Text>
         <View style={{flexDirection:"row", alignItems:"center"}}>
-          {/* Optional install button for web */}
-          {Platform.OS === "web" ? <InstallPrompt /> : null}
+          {Platform.OS === "web" ? <InstallPromptInline /> : null}
           <TouchableOpacity onPress={async()=>{ await signOutLocal(); setUser(null); }} style={styles.smallBtn}>
             <Text>Sign Out</Text>
           </TouchableOpacity>
@@ -472,8 +507,6 @@ export default function App(){
         </View>
         <TouchableOpacity style={styles.settingsBtn} onPress={()=>setShowSettings(true)}><Text>Settings</Text></TouchableOpacity>
       </View>
-
-      {Platform.OS === "web" ? <AddToHomeScreenTip /> : null}
     </View>
   );
 
@@ -484,6 +517,8 @@ export default function App(){
         keyExtractor={(i)=>i}
         ListHeaderComponent={ListHeader}
         ListFooterComponent={<View style={{height:40}}/>}
+        // add little extra side padding so items never touch edges
+        contentContainerStyle={{ paddingHorizontal: 8, paddingBottom: 40 }}
         renderItem={({item})=>{
           /* ===== WEEKLY SUMMARY MODE ===== */
           if (viewMode === "weekly") {
@@ -600,7 +635,6 @@ export default function App(){
             </View>
           );
         }}
-        contentContainerStyle={{paddingBottom:40}}
       />
 
       {/* Calories Calculator — FULL SCREEN + SCROLL */}
@@ -746,50 +780,86 @@ export default function App(){
 
 /* =================== Styles =================== */
 const styles = StyleSheet.create({
-  container:{ flex:1, padding:16 },
+  container: {
+    flex: 1,
+    // more side padding app-wide
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    backgroundColor: "#fff",
+  },
 
-  // center all content and limit width so nothing gets cut off
-  screenInner: { width: "100%", maxWidth: 420, alignSelf: "center" },
+  // keep content narrower and centered on all screens
+  screenInner: {
+    width: "100%",
+    maxWidth: 360,        // <- tightened width (adjust to taste: 340–400)
+    alignSelf: "center",
+    paddingHorizontal: 12 // <- inner gutter
+  },
 
   topSpacer:{ height: TOP_SPACER_PX },
 
-  topbar:{flexDirection:"row",justifyContent:"space-between",alignItems:"center",marginBottom:8, width:"100%", alignSelf:"center"},
-  header:{flexDirection:"row",alignItems:"center",justifyContent:"space-between",marginBottom:8, width:"100%"},
-  navBtn:{paddingHorizontal:12,paddingVertical:6,borderWidth:1,borderRadius:8},
-  title:{fontSize:18,fontWeight:"bold"},
-  toolbar:{marginBottom:8,flexDirection:"row",alignItems:"center",justifyContent:"space-between", width:"100%"},
-  segment:{flexDirection:"row",borderWidth:1,borderRadius:8,overflow:"hidden"},
-  segmentBtn:{paddingVertical:6,paddingHorizontal:12,borderWidth:1,borderRadius:8},
-  segmentBtnActive:{backgroundColor:"#E0E0E0"},
-  segmentTextActive:{fontWeight:"bold"},
-  settingsBtn:{paddingVertical:6,paddingHorizontal:12,borderWidth:1,borderRadius:8},
-
-  // rows wrap and take full inner width
-  row:{flexDirection:"row",alignItems:"center",marginVertical:8, width:"100%", flexWrap:"wrap"},
-  rowCol:{marginVertical:8, width:"100%"},
-
-  label:{flex:1,fontSize:16,minWidth:150},
-  value:{width:60,textAlign:"center",fontSize:16},
-  valueLarge:{width:100,textAlign:"center",fontSize:16},
-  button:{padding:10,borderWidth:1,borderRadius:8,marginHorizontal:5},
-  smallBtn:{paddingVertical:6,paddingHorizontal:10,borderWidth:1,borderRadius:8,marginLeft:6},
-
-  // inputs are narrower so they won’t overflow on small screens
-  input:{
-    borderWidth:1,padding:5,textAlign:"center",borderRadius:5,marginHorizontal:5,
-    minWidth:90, maxWidth:200, flexGrow:0
+  topbar:{
+    flexDirection:"row",
+    justifyContent:"space-between",
+    alignItems:"center",
+    marginBottom:8,
+    width:"100%"
   },
-  unit:{marginLeft:5},
+  header:{
+    flexDirection:"row",
+    alignItems:"center",
+    justifyContent:"space-between",
+    marginBottom:8,
+    width:"100%"
+  },
+  navBtn:{ paddingHorizontal:12, paddingVertical:6, borderWidth:1, borderRadius:8 },
+  title:{ fontSize:18, fontWeight:"bold" },
+
+  toolbar:{
+    marginBottom:8,
+    flexDirection:"row",
+    alignItems:"center",
+    justifyContent:"space-between",
+    width:"100%"
+  },
+  segment:{ flexDirection:"row", borderWidth:1, borderRadius:8, overflow:"hidden" },
+  segmentBtn:{ paddingVertical:6, paddingHorizontal:12, borderWidth:1, borderRadius:8 },
+  segmentBtnActive:{ backgroundColor:"#E0E0E0" },
+  segmentTextActive:{ fontWeight:"bold" },
+  settingsBtn:{ paddingVertical:6, paddingHorizontal:12, borderWidth:1, borderRadius:8 },
+
+  // rows span the inner width and can wrap
+  row:{ flexDirection:"row", alignItems:"center", marginVertical:8, width:"100%", flexWrap:"wrap" },
+  rowCol:{ marginVertical:8, width:"100%" },
+
+  label:{ flex:1, fontSize:16, minWidth:150 },
+  value:{ width:60, textAlign:"center", fontSize:16 },
+  valueLarge:{ width:100, textAlign:"center", fontSize:16 },
+  button:{ padding:10, borderWidth:1, borderRadius:8, marginHorizontal:5 },
+  smallBtn:{ paddingVertical:6, paddingHorizontal:10, borderWidth:1, borderRadius:8, marginLeft:6 },
+
+  // inputs narrower so they don’t touch edges on small phones
+  input:{
+    borderWidth:1,
+    padding:5,
+    textAlign:"center",
+    borderRadius:5,
+    marginHorizontal:5,
+    minWidth:90,
+    maxWidth:200,
+    flexGrow:0
+  },
+  unit:{ marginLeft:5 },
 
   // Full-screen modal layout + scroll
-  modalFull:{ flex:1, backgroundColor:"#fff", padding:20 },
+  modalFull:{ flex:1, backgroundColor:"#fff", paddingVertical:20, paddingHorizontal:24 },
   modalScroll:{ paddingBottom:40 },
 
-  modalTitle:{fontSize:18,fontWeight:"bold",marginBottom:10},
-  intensityBtn:{padding:10,borderWidth:1,borderRadius:8,marginVertical:5},
-  selectedBtn:{backgroundColor:"#007AFF"},
-  paListBox:{borderWidth:1,borderRadius:8,padding:10,marginTop:8},
-  paItemRow:{flexDirection:"row",alignItems:"center",marginBottom:8},
+  modalTitle:{ fontSize:18, fontWeight:"bold", marginBottom:10 },
+  intensityBtn:{ padding:10, borderWidth:1, borderRadius:8, marginVertical:5 },
+  selectedBtn:{ backgroundColor:"#007AFF" },
+  paListBox:{ borderWidth:1, borderRadius:8, padding:10, marginTop:8 },
+  paItemRow:{ flexDirection:"row", alignItems:"center", marginBottom:8 },
 
-  authTitle:{fontSize:22,fontWeight:"bold",marginBottom:12},
+  authTitle:{ fontSize:22, fontWeight:"bold", marginBottom:12 },
 });
