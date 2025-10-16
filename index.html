@@ -23,8 +23,7 @@
         flex: 1;
       }
     </style>
-  <link rel="icon" href="/favicon.ico" />  <link rel="manifest" href="./manifest.webmanifest" />
-</head>
+  <link rel="icon" href="/favicon.ico" /></head>
 
   <body>
     <!-- Use static rendering with Expo Router to support running without JavaScript. -->
@@ -33,17 +32,12 @@
     </noscript>
     <!-- The root element for your Expo app. -->
     <div id="root"></div>
-  <script src="/_expo/static/js/web/index-ef9fd237e70553ca73397d1ea1d994d3.js" defer></script>
+  <script src="/NextStepApp/_expo/static/js/web/index-ef9fd237e70553ca73397d1ea1d994d3.js" defer></script>
 <script>
-      window.onerror = function(msg, src, line, col, err){
-        const box = document.createElement('pre');
-        box.style.position='fixed'; box.style.left='8px'; box.style.right='8px';
-        box.style.bottom='8px'; box.style.maxHeight='50vh'; box.style.overflow='auto';
-        box.style.padding='8px'; box.style.background='rgba(0,0,0,.85)'; box.style.color='#fff';
-        box.style.zIndex=999999; box.style.font='12px/1.4 monospace';
-        box.textContent = 'JS Error:\n' + msg + '\n' + (src||'') + ':' + line + ':' + col;
-        document.body.appendChild(box);
-      };
-    </script>
-</body>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/NextStepApp/sw.js', { scope: '/NextStepApp/' }).catch(()=>{});
+  });
+}
+</script></body>
 </html>
