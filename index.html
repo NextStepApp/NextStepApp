@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+  <base href="/NextStepApp/">
+  <link rel="manifest" href="/NextStepApp/manifest.webmanifest">
     <meta charset="utf-8" />
     <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
@@ -32,12 +34,13 @@
     </noscript>
     <!-- The root element for your Expo app. -->
     <div id="root"></div>
-  <script src="/NextStepApp/_expo/static/js/web/index-ef9fd237e70553ca73397d1ea1d994d3.js" defer></script>
+  <script src="/NextStepApp/_expo/static/js/web/index-458da2aaa2b216b1ba5501448fc40e3d.js" defer></script>
+
 <script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', function() {
-    navigator.serviceWorker.register('/NextStepApp/sw.js', { scope: '/NextStepApp/' }).catch(()=>{});
-  });
-}
-</script></body>
-</html>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("/NextStepApp/sw.js").catch(function(e){console.warn("SW registration failed", e)});
+    });
+  }
+</script>
+</body></html>
