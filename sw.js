@@ -19,13 +19,16 @@ self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;
   event.respondWith(
-    caches.match(request).then((cached) =>
-      cached ||
-      fetch(request).then((resp) => {
-        const clone = resp.clone();
-        caches.open(CACHE).then((c) => c.put(request, clone));
-        return resp;
-      }).catch(() => caches.match("/NextStepApp/index.html"))
+    caches.match(request).then(
+      (cached) =>
+        cached ||
+        fetch(request)
+          .then((resp) => {
+            const clone = resp.clone();
+            caches.open(CACHE).then((c) => c.put(request, clone));
+            return resp;
+          })
+          .catch(() => caches.match("/NextStepApp/index.html"))
     )
   );
 });
