@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+  <!-- BASE:BEGIN --><base href="/NextStepApp/"><!-- BASE:END -->
     <meta charset="utf-8" />
     <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
@@ -23,7 +24,23 @@
         flex: 1;
       }
     </style>
-  <link rel="icon" href="/favicon.ico" /></head>
+  <link rel="icon" href="/favicon.ico" /><!-- PWA-INJECT START -->
+<script>window.__BASE_PATH__ = "/NextStepApp/";</script>
+<link rel="manifest" href="/NextStepApp/manifest.webmanifest?v=1760881752889">
+<script>
+(function(){
+  if (!('serviceWorker' in navigator)) return;
+  var base = (window.__BASE_PATH__ || '/');
+  var swUrl = base + 'sw.js?v=1760881752889';
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register(swUrl, { scope: base })
+      .catch(function(e){ console.warn('SW registration failed:', e); });
+  });
+})();
+</script>
+<!-- PWA-INJECT END -->
+
+</head>
 
   <body>
     <!-- Use static rendering with Expo Router to support running without JavaScript. -->
@@ -32,34 +49,6 @@
     </noscript>
     <!-- The root element for your Expo app. -->
     <div id="root"></div>
-  <script src="/NextStepApp/_expo/static/js/web/index-3ce40879501a86455269812e73fe0c78.js" defer></script>
-<!-- SW injected --><script>/*SW-REG*/
-(function(){
-  if ('serviceWorker' in navigator) {
-    var v='1760840781754';
-    window.addEventListener('load', function(){
-      navigator.serviceWorker.register('./sw.js?v='+v).then(function(reg){
-        // take control asap
-        if (reg.waiting) reg.waiting.postMessage({type:'SKIP_WAITING'});
-        reg.addEventListener('updatefound', function(){
-          var sw = reg.installing;
-          if (!sw) return;
-          sw.addEventListener('statechange', function(){
-            if (sw.state === 'installed' && navigator.serviceWorker.controller) {
-              // new version available -> reload to get fresh code
-              location.reload();
-            }
-          });
-        });
-      }).catch(function(e){ console.log('SW register failed', e); });
-      navigator.serviceWorker.addEventListener('controllerchange', function(){ /* activated */ });
-    });
-    // allow SW to skip waiting
-    navigator.serviceWorker.addEventListener('message', function(event){
-      if (event.data && event.data.type === 'SKIP_WAITING') {
-        if (navigator.serviceWorker.controller) navigator.serviceWorker.controller.postMessage({type:'SKIP_WAITING'});
-      }
-    });
-  }
-})();</script></body>
+  <script src="/_expo/static/js/web/index-8efd76dab185128182a2a8f3717291e3.js" defer></script>
+</body>
 </html>
