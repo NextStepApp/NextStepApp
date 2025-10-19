@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+  <base href="/NextStepApp/">
     <meta charset="utf-8" />
     <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
@@ -23,7 +24,8 @@
         flex: 1;
       }
     </style>
-  <link rel="icon" href="/favicon.ico" /></head>
+  <link rel="icon" href="/NextStepApp/favicon.ico" />  <link rel="manifest" href="/NextStepApp/manifest.webmanifest">
+</head>
 
   <body>
     <!-- Use static rendering with Expo Router to support running without JavaScript. -->
@@ -33,5 +35,17 @@
     <!-- The root element for your Expo app. -->
     <div id="root"></div>
   <script src="/_expo/static/js/web/index-8efd76dab185128182a2a8f3717291e3.js" defer></script>
-</body>
-</html>
+
+<script>
+  (function() {
+    if (!('serviceWorker' in navigator)) return;
+    window.addEventListener('load', function() {
+      var scope = '/NextStepApp/';
+      var swUrl = scope + 'sw.js?v=1760898352549';
+      navigator.serviceWorker.register(swUrl, { scope: scope })
+        .catch(function(e){ console.log('SW register failed', e); });
+    });
+  })();
+</script>
+
+</body></html>

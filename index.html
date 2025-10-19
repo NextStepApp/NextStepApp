@@ -24,7 +24,8 @@
         flex: 1;
       }
     </style>
-  <link rel="icon" href="/favicon.ico" /></head>
+  <link rel="icon" href="/NextStepApp/favicon.ico" />  <link rel="manifest" href="/NextStepApp/manifest.webmanifest">
+</head>
 
   <body>
     <!-- Use static rendering with Expo Router to support running without JavaScript. -->
@@ -40,7 +41,7 @@
     if (!('serviceWorker' in navigator)) return;
     window.addEventListener('load', function() {
       var scope = '/NextStepApp/';
-      var swUrl = scope + 'sw.js?v=1760891278712';
+      var swUrl = scope + 'sw.js?v=1760898352549';
       navigator.serviceWorker.register(swUrl, { scope: scope })
         .catch(function(e){ console.log('SW register failed', e); });
     });
