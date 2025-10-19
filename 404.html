@@ -24,7 +24,8 @@
         flex: 1;
       }
     </style>
-  <link rel="icon" href="/NextStepApp/favicon.ico" />  <link rel="manifest" href="/NextStepApp/manifest.webmanifest">
+    <link rel="manifest" href="/NextStepApp/manifest.webmanifest">
+  <link rel="icon" href="/NextStepApp/favicon.ico">
 </head>
 
   <body>
@@ -41,7 +42,7 @@
     if (!('serviceWorker' in navigator)) return;
     window.addEventListener('load', function() {
       var scope = '/NextStepApp/';
-      var swUrl = scope + 'sw.js?v=1760898352549';
+      var swUrl = scope + 'sw.js?v=1760900922747';
       navigator.serviceWorker.register(swUrl, { scope: scope })
         .catch(function(e){ console.log('SW register failed', e); });
     });
