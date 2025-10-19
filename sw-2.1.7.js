@@ -1,6 +1,6 @@
 /* public/sw.js — template, version injected by inject-manifest.js */
 
-const VERSION = '__SW_VERSION__';
+const VERSION = '2.1.7';
 const CACHE_NAME = `nextstepapp-${VERSION}`;
 const BASE = '/NextStepApp/';
 

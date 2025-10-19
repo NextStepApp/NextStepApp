@@ -45,21 +45,21 @@
     (function() {
       if ('serviceWorker' in navigator) {
         const scope = '/NextStepApp/';
-        const swUrl = scope + 'sw.js?v=1760913438668';
+        const swUrl = scope + 'sw-2.1.7.js?v=1760917543267';
+
+        // Nuke any registrations with the wrong scope (e.g., root "/")
+        navigator.serviceWorker.getRegistrations && navigator.serviceWorker.getRegistrations().then(async regs => {
+          for (const r of regs) {
+            if (r.scope && !r.scope.endsWith(scope)) { try { await r.unregister(); } catch(e){} }
+          }
+        });
+
         window.addEventListener('load', function () {
-          navigator.serviceWorker.getRegistrations && navigator.serviceWorker.getRegistrations().then(async regs => {
-            // Unregister SWs outside our scope to avoid collisions
-            for (const r of regs) {
-              if (r.scope && !r.scope.endsWith(scope)) { try { await r.unregister(); } catch(e){} }
-            }
-            try {
-              const reg = await navigator.serviceWorker.register(swUrl, { scope });
-              // Optional: listen for new versions
-              if (reg && reg.waiting) { reg.waiting.postMessage({ type: 'SKIP_WAITING' }); }
-            } catch (e) {
-              console.warn('SW registration failed', e);
-            }
-          });
+          navigator.serviceWorker.register(swUrl, { scope })
+            .then(reg => {
+              if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+            })
+            .catch(e => console.warn('SW registration failed', e));
         });
       }
     })();
