@@ -24,23 +24,7 @@
         flex: 1;
       }
     </style>
-  <link rel="icon" href="/favicon.ico" /><!-- PWA-INJECT START -->
-<script>window.__BASE_PATH__ = "/NextStepApp/";</script>
-<link rel="manifest" href="/NextStepApp/manifest.webmanifest?v=1760888201238">
-<script>
-(function(){
-  if (!('serviceWorker' in navigator)) return;
-  var base = (window.__BASE_PATH__ || '/');
-  var swUrl = base + 'sw.js?v=1760888201238';
-  window.addEventListener('load', function(){
-    navigator.serviceWorker.register(swUrl, { scope: base })
-      .catch(function(e){ console.warn('SW registration failed:', e); });
-  });
-})();
-</script>
-<!-- PWA-INJECT END -->
-
-</head>
+  <link rel="icon" href="/favicon.ico" /></head>
 
   <body>
     <!-- Use static rendering with Expo Router to support running without JavaScript. -->
@@ -50,5 +34,17 @@
     <!-- The root element for your Expo app. -->
     <div id="root"></div>
   <script src="/_expo/static/js/web/index-8efd76dab185128182a2a8f3717291e3.js" defer></script>
-</body>
-</html>
+
+<script>
+  (function() {
+    if (!('serviceWorker' in navigator)) return;
+    window.addEventListener('load', function() {
+      var scope = '/NextStepApp/';
+      var swUrl = scope + 'sw.js?v=1760891278712';
+      navigator.serviceWorker.register(swUrl, { scope: scope })
+        .catch(function(e){ console.log('SW register failed', e); });
+    });
+  })();
+</script>
+
+</body></html>
