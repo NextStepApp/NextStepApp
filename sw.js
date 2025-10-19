@@ -1,18 +1,15 @@
 /* public/sw.js
- *
- * A lightweight PWA service worker:
- * - versioned via the SW query string (?v=...)
- * - network-first for HTML/JS/CSS (keeps you fresh after deploys)
- * - cache-first for images (faster + offline)
- * - cleans old caches on activate
- * - takes control immediately
+ * PWA SW with correct base-path fallback for GitHub Pages (/NextStepApp/).
+ * - Figures out BASE_PATH from registration scope.
+ * - Pre-caches index.html at that base.
+ * - Network-first for app shell (HTML/JS/CSS), cache-first for images.
+ * - Cleans old caches and takes control immediately.
  */
 
-/// Resolve version from SW script URL (?v=...)
 const VERSION = (() => {
   try {
     return new URL(self.location).searchParams.get("v") || "v1";
-  } catch (e) {
+  } catch {
     return "v1";
   }
 })();
@@ -20,9 +17,29 @@ const VERSION = (() => {
 const CACHE_PREFIX = "nextstepapp";
 const RUNTIME_CACHE = `${CACHE_PREFIX}-runtime-${VERSION}`;
 
-// Take control ASAP
+// Derive BASE_PATH from SW scope (e.g., https://.../NextStepApp/)
+const BASE_PATH = (() => {
+  try {
+    const scopeUrl = new URL(self.registration.scope);
+    // scope always ends with a trailing slash; keep it
+    return scopeUrl.pathname;
+  } catch {
+    return "/NextStepApp/"; // sensible default for this project
+  }
+})();
+
 self.addEventListener("install", (event) => {
-  self.skipWaiting();
+  event.waitUntil(
+    (async () => {
+      const cache = await caches.open(RUNTIME_CACHE);
+      // Precache index.html so navigate fallbacks work offline/installed.
+      // We try both explicit index.html and the directory path (GH Pages sometimes treats both).
+      await cache.addAll([
+        BASE_PATH + "index.html",
+      ].map((u) => new Request(u, { cache: "reload" })));
+      self.skipWaiting();
+    })()
+  );
 });
 
 self.addEventListener("activate", (event) => {
@@ -39,50 +56,54 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-function isHTML(request) {
-  return request.mode === "navigate" ||
-    (request.headers.get("accept") || "").includes("text/html");
-}
-
-function isAsset(request) {
-  const url = new URL(request.url);
+function isHTML(req) {
   return (
-    url.pathname.endsWith(".js") ||
-    url.pathname.endsWith(".css") ||
-    url.pathname.endsWith(".json") ||
-    url.pathname.endsWith(".map")
+    req.mode === "navigate" ||
+    (req.headers.get("accept") || "").includes("text/html")
   );
 }
-
-function isImage(request) {
-  const url = new URL(request.url);
-  return /\.(png|jpg|jpeg|gif|webp|svg|ico)$/i.test(url.pathname);
+function isAsset(req) {
+  const p = new URL(req.url).pathname;
+  return /\.(js|css|json|map)$/i.test(p);
+}
+function isImage(req) {
+  const p = new URL(req.url).pathname;
+  return /\.(png|jpg|jpeg|gif|webp|svg|ico)$/i.test(p);
 }
 
-// Network-first for HTML/JS/CSS (with fallback to cache)
+// Normalize navigation requests to the real index.html under BASE_PATH.
+function normalizeNavigateRequest(req) {
+  const url = new URL(req.url);
+  // Any path under our scope should get the app shell.
+  if (url.pathname.startsWith(BASE_PATH)) {
+    return new Request(BASE_PATH + "index.html", { headers: req.headers, mode: "same-origin" });
+  }
+  return req;
+}
+
+// Network-first for HTML/JS/CSS with fallback to cached index.html for navigations.
 async function networkFirst(event) {
   const cache = await caches.open(RUNTIME_CACHE);
   try {
-    const fresh = await fetch(event.request);
-    // Only cache successful same-origin GETs
+    // For navigations, always fetch the actual request; if it fails we use our app-shell fallback.
+    const res = await fetch(event.request);
     if (event.request.method === "GET" && new URL(event.request.url).origin === self.location.origin) {
-      cache.put(event.request, fresh.clone());
+      cache.put(event.request, res.clone());
     }
-    return fresh;
+    return res;
   } catch (e) {
-    const cached = await cache.match(event.request, { ignoreSearch: true });
-    if (cached) return cached;
-
-    // Fallback to index.html for navigations (SPA safety)
     if (isHTML(event.request)) {
-      const fallback = await cache.match("/index.html");
+      // app shell fallback from cache
+      const fallback = await cache.match(new Request(BASE_PATH + "index.html"));
       if (fallback) return fallback;
     }
+    const cached = await cache.match(event.request, { ignoreSearch: true });
+    if (cached) return cached;
     throw e;
   }
 }
 
-// Cache-first for images
+// Cache-first for images.
 async function cacheFirst(event) {
   const cache = await caches.open(RUNTIME_CACHE);
   const cached = await cache.match(event.request, { ignoreSearch: true });
@@ -91,42 +112,65 @@ async function cacheFirst(event) {
     const fresh = await fetch(event.request);
     if (fresh && fresh.ok) cache.put(event.request, fresh.clone());
     return fresh;
-  } catch (e) {
-    // give up silently; browser will show broken image
+  } catch {
     return cached || Response.error();
   }
 }
 
 self.addEventListener("fetch", (event) => {
-  // Only handle http(s)
-  if (!/^https?:$/i.test(new URL(event.request.url).protocol)) return;
+  // Only handle http(s) in our origin
+  const url = new URL(event.request.url);
+  if (!/^https?:$/i.test(url.protocol)) return;
+  if (url.origin !== self.location.origin) return;
 
-  const req = event.request;
+  // If this is a navigation under our BASE_PATH, serve the app shell pattern.
+  if (isHTML(event.request) && url.pathname.startsWith(BASE_PATH)) {
+    event.respondWith(
+      (async () => {
+        // Try network first for freshness, but fallback to cached index.
+        const cache = await caches.open(RUNTIME_CACHE);
+        try {
+          const res = await fetch(event.request);
+          // Cache the response for faster subsequent loads
+          cache.put(event.request, res.clone());
+          return res;
+        } catch {
+          const fallback = await cache.match(new Request(BASE_PATH + "index.html"));
+          if (fallback) return fallback;
+          // As a last resort, try any cached navigation
+          const any = await cache.match(event.request, { ignoreSearch: true });
+          if (any) return any;
+          return Response.error();
+        }
+      })()
+    );
+    return;
+  }
 
-  if (isHTML(req) || isAsset(req)) {
+  if (isAsset(event.request)) {
     event.respondWith(networkFirst(event));
     return;
   }
 
-  if (isImage(req)) {
+  if (isImage(event.request)) {
     event.respondWith(cacheFirst(event));
     return;
   }
 
-  // Default: try network, fall back to cache (runtime)
+  // Default: network, then cache fallback if we have it
   event.respondWith(
     (async () => {
       const cache = await caches.open(RUNTIME_CACHE);
       try {
-        const fresh = await fetch(req);
-        if (req.method === "GET" && new URL(req.url).origin === self.location.origin) {
-          cache.put(req, fresh.clone());
+        const fresh = await fetch(event.request);
+        if (event.request.method === "GET") {
+          cache.put(event.request, fresh.clone());
         }
         return fresh;
-      } catch (e) {
-        const cached = await cache.match(req, { ignoreSearch: true });
+      } catch {
+        const cached = await cache.match(event.request, { ignoreSearch: true });
         if (cached) return cached;
-        throw e;
+        return Response.error();
       }
     })()
   );
