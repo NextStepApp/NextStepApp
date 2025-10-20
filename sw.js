@@ -1,78 +1,43 @@
-/* public/sw.js — template, version injected by inject-manifest.js */
+const CACHE = 'nextstepapp-v1';
 
-const VERSION = '__SW_VERSION__';
-const CACHE_NAME = `nextstepapp-${VERSION}`;
-const BASE = '/NextStepApp/';
-
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
-});
-
-self.addEventListener('install', (event) => {
-  event.waitUntil((async () => {
-    self.skipWaiting();
-    const cache = await caches.open(CACHE_NAME);
-    await cache.addAll([
-      `${BASE}`,
-      `${BASE}index.html`,
-      `${BASE}404.html`,
-      `${BASE}favicon.ico`,
-      // other small always-present assets can be added here
+self.addEventListener('install', (e) => {
+  e.waitUntil((async () => {
+    const c = await caches.open(CACHE);
+    // Pre-cache minimal shell; the rest is runtime-cached.
+    await c.addAll([
+      '/NextStepApp/',
+      '/NextStepApp/index.html',
+      '/NextStepApp/manifest.webmanifest',
+      '/NextStepApp/favicon.ico'
     ]);
   })());
+  self.skipWaiting();
 });
 
-self.addEventListener('activate', (event) => {
-  event.waitUntil((async () => {
-    await self.clients.claim();
+self.addEventListener('activate', (e) => {
+  e.waitUntil((async () => {
     const keys = await caches.keys();
-    await Promise.all(keys.map(k => (k === CACHE_NAME ? null : caches.delete(k))));
+    await Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)));
   })());
+  self.clients.claim();
 });
 
-function inScope(url) {
-  try {
-    const u = new URL(url, self.location.origin);
-    return u.origin === self.location.origin && u.pathname.startsWith(BASE);
-  } catch { return false; }
-}
+self.addEventListener('fetch', (e) => {
+  const req = e.request;
+  // Only handle GET within our scope
+  if (req.method !== 'GET' || !new URL(req.url).pathname.startsWith('/NextStepApp/')) return;
 
-self.addEventListener('fetch', (event) => {
-  const { request } = event;
-  if (request.method !== 'GET' || !inScope(request.url)) return;
-
-  const accept = request.headers.get('accept') || '';
-  const isHTML = accept.includes('text/html');
-
-  if (isHTML) {
-    // Network-first for HTML so fresh shell points to fresh chunks
-    event.respondWith((async () => {
-      try {
-        const fresh = await fetch(request, { cache: 'no-store' });
-        const cache = await caches.open(CACHE_NAME);
-        cache.put(request, fresh.clone());
-        return fresh;
-      } catch {
-        const cached = await caches.match(request);
-        return cached || caches.match(`${BASE}index.html`);
-      }
-    })());
-    return;
-  }
-
-  // Cache-first for static assets
-  event.respondWith((async () => {
-    const cached = await caches.match(request);
+  e.respondWith((async () => {
+    const cached = await caches.match(req);
     if (cached) return cached;
     try {
-      const res = await fetch(request);
-      if (res && res.ok) {
-        const cache = await caches.open(CACHE_NAME);
-        cache.put(request, res.clone());
-      }
+      const res = await fetch(req);
+      const clone = res.clone();
+      const c = await caches.open(CACHE);
+      c.put(req, clone);
       return res;
     } catch {
-      return new Response('', { status: 504 });
+      return cached || Response.error();
     }
   })());
 });

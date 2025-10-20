@@ -24,12 +24,7 @@
         flex: 1;
       }
     </style>
-  
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#0a84ff">
-  <link rel="manifest" href="/NextStepApp/manifest.webmanifest">
-  <link rel="icon" href="/NextStepApp/favicon.ico">
-
+    <link rel="manifest" href="manifest.webmanifest">
 </head>
 
   <body>
@@ -39,31 +34,13 @@
     </noscript>
     <!-- The root element for your Expo app. -->
     <div id="root"></div>
-  <script src="/NextStepApp/_expo/static/js/web/index-8efd76dab185128182a2a8f3717291e3.js" defer></script>
-
+  <script src="/_expo/static/js/web/index-8efd76dab185128182a2a8f3717291e3.js" defer></script>
   <script>
-    (function() {
       if ('serviceWorker' in navigator) {
-        const scope = '/NextStepApp/';
-        const swUrl = scope + 'sw-2.1.7.js?v=1760917543267';
-
-        // Nuke any registrations with the wrong scope (e.g., root "/")
-        navigator.serviceWorker.getRegistrations && navigator.serviceWorker.getRegistrations().then(async regs => {
-          for (const r of regs) {
-            if (r.scope && !r.scope.endsWith(scope)) { try { await r.unregister(); } catch(e){} }
-          }
-        });
-
-        window.addEventListener('load', function () {
-          navigator.serviceWorker.register(swUrl, { scope })
-            .then(reg => {
-              if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-            })
-            .catch(e => console.warn('SW registration failed', e));
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('sw.js').catch(()=>{});
         });
       }
-    })();
-  </script>
-
+    </script>
 </body>
 </html>
