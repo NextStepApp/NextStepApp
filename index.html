@@ -24,7 +24,8 @@
         flex: 1;
       }
     </style>
-    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="manifest" href="/NextStepApp/manifest.webmanifest">
+  <link rel="icon" href="/NextStepApp/favicon.ico">
 </head>
 
   <body>
@@ -35,12 +36,15 @@
     <!-- The root element for your Expo app. -->
     <div id="root"></div>
   <script src="/NextStepApp/_expo/static/js/web/index-8efd76dab185128182a2a8f3717291e3.js" defer></script>
-  <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('sw.js').catch(()=>{});
-        });
-      }
-    </script>
+<script>
+(function(){
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('/NextStepApp/sw.js', { scope: '/NextStepApp/' })
+        .catch(function(e){ console.log('SW reg failed', e); });
+    });
+  }
+})();
+</script>
 </body>
 </html>
